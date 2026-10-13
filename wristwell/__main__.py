@@ -17,7 +17,7 @@ DEMO_MTIMES = {"2026-01-04": "2026-01-05 08:12", "2026-01-05": "2026-01-05 21:30
 
 
 def notify(text):
-    """定稿时在 Mac 上弹一个系统通知（其他系统只打印）。文字通过参数传入，不拼进脚本。"""
+    """报告定稿或需要用户处理时弹通知。文字通过参数传入，不拼进脚本。"""
     print(text)
     if platform.system() == "Darwin":
         script = 'on run argv\ndisplay notification (item 1 of argv) with title "腕康宝"\nend run'
@@ -78,8 +78,10 @@ def main(argv=None):
         if cfg.notify:
             for d in result["finalized"]:
                 notify(f"{d} 的健康报告已定稿")
-            if result["fatal"]:
+            if result["fatal"] and result.get("notify_fatal", True):
                 notify(result["fatal"][:120])
+            for alert in result.get("alerts", []):
+                notify(alert)
         return result
 
     while True:
@@ -91,10 +93,13 @@ def main(argv=None):
             print(f"本次运行失败：{e}")
             result = None
         if not a.loop:
-            if result and (result["fatal"] or (a.demo and result["errors"])):
+            if result and (result["fatal"] or result["errors"]):
                 sys.exit(1)
             return
-        nxt = (datetime.now() + timedelta(hours=1)).replace(minute=1, second=0, microsecond=0)
+        clock_now = datetime.now()
+        nxt = clock_now.replace(minute=1, second=0, microsecond=0)
+        if nxt <= clock_now:
+            nxt += timedelta(hours=1)
         while datetime.now() < nxt:     # 按墙上时间等：Mac 睡眠醒来后能马上补跑
             time.sleep(min(60, max(1, (nxt - datetime.now()).total_seconds())))
 

@@ -1,4 +1,6 @@
 import json
+
+import pytest
 import os
 import shutil
 from datetime import datetime
@@ -111,3 +113,161 @@ def test_demo_dry_run(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "2026-01-04（定稿）" in out and "2026-01-05（进行中 · 截至 21:30）" in out
     assert (ROOT / "workspace/demo-vault/每日/2026-01-05.md").exists()
+
+
+@pytest.mark.parametrize("change", ["manual", "previous_manual", "notes", "profile", "plan"])
+def test_changed_report_inputs_update_without_new_export(tmp_path, make_cfg, monkeypatch, change):
+    calls = []
+    cfg = setup(tmp_path, make_cfg, monkeypatch, calls)
+    now = datetime(2026, 1, 5, 22, tzinfo=TZ)
+    run.run_once(cfg, now=now, log=lambda *_: None)
+    note_path = cfg.vault_dir / "每日/2026-01-05.md"
+    marker = "新增记录：今天需要重新分析"
+    if change in ("manual", "previous_manual"):
+        path = cfg.vault_dir / "手动记录.md"
+        day = "2026-01-05" if change == "manual" else "2026-01-04"
+        text = path.read_text()
+        blocks = run.manual_log.parse_blocks(text)
+        text = text.replace(blocks[day], blocks[day] + "\n- 多吃:: " + marker + "\n")
+    elif change == "notes":
+        path = note_path
+        text = path.read_text().replace("## 备注", "## 备注\n" + marker)
+    else:
+        path = cfg.vault_dir / ("个人档案.md" if change == "profile" else "训练计划.md")
+        text = path.read_text() + "\n" + marker
+    path.write_text(text)
+    before = len(calls)
+    updated = run.run_once(cfg, now=now, log=lambda *_: None)
+    expected_day = "2026-01-04" if change == "plan" else "2026-01-05"
+    assert expected_day in updated["written"]
+    assert any(marker in c["messages"][0]["content"] for c in calls[before:])
+    assert marker in path.read_text()   # 更新不删除用户输入。
+    before = len(calls)
+    assert run.run_once(cfg, now=now, log=lambda *_: None)["written"] == []
+    assert len(calls) == before        # 内容未变不反复花钱。
+
+
+def test_late_workout_with_older_file_time_updates_report(tmp_path, make_cfg, monkeypatch):
+    calls = []
+    cfg = setup(tmp_path, make_cfg, monkeypatch, calls)
+    late = cfg.export_dir / "Workout/HealthAutoExport-2026-01-05.json"
+    data = late.read_text()
+    late.unlink()
+    now = datetime(2026, 1, 5, 22, tzinfo=TZ)
+    run.run_once(cfg, now=now, log=lambda *_: None)
+    path = cfg.vault_dir / "每日/2026-01-05.md"
+    assert "workout_min: 32" not in path.read_text()
+    late.write_text(data)
+    stamp = datetime(2026, 1, 5, 19, tzinfo=TZ).timestamp()
+    os.utime(late, (stamp, stamp))
+    before = len(calls)
+    assert "2026-01-05" in run.run_once(cfg, now=now, log=lambda *_: None)["written"]
+    assert "workout_min: 32" in path.read_text()
+    assert len(calls) > before
+
+
+def test_workout_content_change_with_same_file_metadata_is_ingested(tmp_path, make_cfg, monkeypatch):
+    calls = []
+    cfg = setup(tmp_path, make_cfg, monkeypatch, calls)
+    now = datetime(2026, 1, 5, 22, tzinfo=TZ)
+    run.run_once(cfg, now=now, log=lambda *_: None)
+    f = cfg.export_dir / "Workout/HealthAutoExport-2026-01-05.json"
+    stat = f.stat()
+    data = json.loads(f.read_text())
+    w = data["data"]["workouts"][0]
+    old = w["duration"]
+    text = f.read_text().replace(str(old), str(old + 60), 1)
+    assert len(text.encode()) == stat.st_size
+    f.write_text(text)
+    os.utime(f, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+    assert "2026-01-05" in run.run_once(cfg, now=now, log=lambda *_: None)["written"]
+    cached = json.loads((cfg.data_dir / "cache/workout/2026-01-05.json").read_text())
+    assert cached[0]["duration"] == old + 60
+
+
+@pytest.mark.parametrize("stop", ["max_tokens", "refusal"])
+def test_manual_correction_unlocks_failed_or_refused_report(tmp_path, make_cfg, monkeypatch, stop):
+    calls = []
+    cfg = setup(tmp_path, make_cfg, monkeypatch, calls, stop=stop)
+    now = datetime(2026, 1, 5, 22, tzinfo=TZ)
+    run.run_once(cfg, now=now, log=lambda *_: None)
+    run.run_once(cfg, now=now, log=lambda *_: None)
+    path = cfg.vault_dir / "每日/2026-01-05.md"
+    path.write_text(path.read_text().replace("## 备注", "## 备注\n已补充准确记录"))
+    monkeypatch.setattr(report, "generate", lambda *a, **kw: "## 成功报告")
+    assert "2026-01-05" in run.run_once(cfg, now=now, log=lambda *_: None)["written"]
+    assert "成功报告" in path.read_text() and "已补充准确记录" in path.read_text()
+
+
+def test_notes_added_during_generation_are_preserved_and_reanalyzed(tmp_path, make_cfg, monkeypatch):
+    calls = []
+    cfg = setup(tmp_path, make_cfg, monkeypatch, calls)
+    now = datetime(2026, 1, 5, 22, tzinfo=TZ)
+    path = cfg.vault_dir / "每日/2026-01-05.md"
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(run.note.render(None, None, {}, "旧报告"))
+    marker = "生成期间补写的备注"
+    def generating(*args, **kwargs):
+        path.write_text(path.read_text().replace("## 备注", "## 备注\n" + marker).replace("---\n", "---\nmood: 用户字段\n", 1))
+        return "## 新报告"
+    monkeypatch.setattr(report, "generate", generating)
+    run.run_once(cfg, now=now, log=lambda *_: None)
+    assert marker in path.read_text() and "mood: 用户字段" in path.read_text()
+    monkeypatch.setattr(report, "generate", lambda cfg, sys, user, **kw: "## 已读新备注" if marker in user else "## 其他日")
+    assert "2026-01-05" in run.run_once(cfg, now=now, log=lambda *_: None)["written"]
+    assert "已读新备注" in path.read_text()
+
+
+def test_missing_export_alert_is_deduplicated_and_rearms_after_recovery(tmp_path, make_cfg):
+    cfg = make_cfg(timezone="Asia/Shanghai")
+    cfg.vault_dir.mkdir()
+    now = datetime(2026, 1, 5, 22, tzinfo=TZ)
+    first = run.run_once(cfg, now=now, dry_run=True, log=lambda *_: None)
+    assert first["errors"] and first["alerts"]
+    assert run.run_once(cfg, now=now, dry_run=True, log=lambda *_: None)["alerts"] == []
+    for kind in ("Health", "Workout"):
+        (cfg.export_dir / kind).mkdir(parents=True)
+    run.run_once(cfg, now=now, dry_run=True, log=lambda *_: None)
+    (cfg.export_dir / "Health").rmdir()
+    assert run.run_once(cfg, now=now, dry_run=True, log=lambda *_: None)["alerts"]
+
+
+def test_empty_export_alert_and_stale_alert_do_not_repeat(tmp_path, make_cfg):
+    cfg = make_cfg(timezone="Asia/Shanghai")
+    cfg.vault_dir.mkdir()
+    for kind in ("Health", "Workout"):
+        (cfg.export_dir / kind).mkdir(parents=True)
+    now = datetime(2026, 1, 5, 22, tzinfo=TZ)
+    assert "尚未收到" in run.run_once(cfg, now=now, dry_run=True, log=lambda *_: None)["alerts"][0]
+    assert run.run_once(cfg, now=now, dry_run=True, log=lambda *_: None)["alerts"] == []
+    f = cfg.export_dir / "Health/data.json"
+    f.write_text(json.dumps({"data": {"metrics": [{"name": "step_count", "units": "count", "data": [{"qty": 1000, "date": "2026-01-04 00:00:00 +0800"}]}]}}))
+    stamp = datetime(2026, 1, 4, 12, tzinfo=TZ).timestamp()
+    os.utime(f, (stamp, stamp))
+    r = run.run_once(cfg, now=now, dry_run=True, log=lambda *_: None)
+    assert any("24 小时" in msg for msg in r["alerts"])
+    assert run.run_once(cfg, now=now, dry_run=True, log=lambda *_: None)["alerts"] == []
+
+
+@pytest.mark.parametrize("bad", ['{"data":', '{"data": {}}', '{"data": {"metrics": []}}'])
+def test_bad_or_empty_export_does_not_advance_finalization(tmp_path, make_cfg, monkeypatch, bad):
+    calls = []
+    cfg = setup(tmp_path, make_cfg, monkeypatch, calls)
+    now = datetime(2026, 1, 5, 22, tzinfo=TZ)
+    run.run_once(cfg, now=now, log=lambda *_: None)
+    previous = json.loads((cfg.data_dir / "state.json").read_text())["latest_export"]
+    f = cfg.export_dir / "Health/new.json"
+    f.write_text(bad)
+    stamp = datetime(2026, 1, 6, 9, tzinfo=TZ).timestamp()
+    os.utime(f, (stamp, stamp))
+    r = run.run_once(cfg, now=datetime(2026, 1, 6, 10, tzinfo=TZ), log=lambda *_: None)
+    assert "2026-01-05" not in r["finalized"]
+    state = json.loads((cfg.data_dir / "state.json").read_text())
+    assert state["latest_export"] == previous
+
+
+def test_workout_only_day_is_present_in_history(tmp_path, make_cfg):
+    cfg = make_cfg()
+    cfg.vault_dir.mkdir()
+    run.write_json(cfg.data_dir / "cache/workout/2026-01-05.json", [{"name": "Outdoor Cycle", "start": "2026-01-05 18:00:00 +0800", "duration": 3600, "distance": {"qty": 20, "units": "km"}}])
+    assert run.history(cfg, {}, "2026-01-05")["2026-01-05"]["workout_min"] == 60
