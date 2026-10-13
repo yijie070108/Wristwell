@@ -27,9 +27,12 @@
 ## 容易踩的坑
 
 - **定稿**：一天的报告在「那天 24 点之后又来过任何一次导出」时定稿（`run.is_final`），不是看那天自己的文件。
+- **报告更新**：按 `prepare_day` 的实际材料签名检查；缓存变了但文件时间较早、手填记录/备注变了也必须触发。失败与拒绝同样绑定材料签名。
+- **睡眠合并**：按来源和完整时段保留/纠错；无时段或缩短时段的下修无法区分残缺，保守保留。
+- **故障通知**：`active_alerts` 记录持续故障，只在出现或变化时提醒，恢复后重新触发。
 - **残缺导出**：写报告只读 `workspace/cache/`，不直接读导出文件。
 - **iCloud**：没下载的文件是 `.xxx.json.icloud` 占位符；launchd 运行要给 Python 完全磁盘访问权限，否则读目录会 PermissionError。
 - **Claude API**：默认 `claude-opus-5-5` + `effort: max` + 自适应思考 + `max_tokens=128000`（思考也算在内）；只接受 `stop_reason=end_turn`，截断和拒绝都不能覆盖旧报告。Opus 5.5 不能关思考。
-- **省钱**：同一份数据连续失败 2 次就停（`state.json` 的 `failures`），新数据或 `--date` 才重试；`--loop` 时 `--date` 只在第一次生效。
+- **省钱**：同一份报告材料连续失败 2 次就停（`state.json` 的 `failures`），报告材料变化或 `--date` 才重试；`--loop` 时 `--date` 只在第一次生效。
 - `manual_log.py` 和 `cache_merge.py` 只能用标准库（无代码模式会把它们单独拷走用）。
 - 提交前跑：`python -m pytest -q` 和 `python start.py --demo --dry-run`。

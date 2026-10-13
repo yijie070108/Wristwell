@@ -1,4 +1,5 @@
 """一次完整运行：整理手动记录 → 读新导出并合并进缓存 → 重写有新数据的每日笔记 → 周一写周报。"""
+import hashlib
 import json
 import os
 import platform
@@ -56,41 +57,56 @@ def _request_icloud_download(folder, log):
 
 
 def ingest(cfg, state, log=print, save=lambda: None, now_ts=None):
-    """把新的或 mtime 变过的导出文件合并进缓存。更新 state["days"][日期] = 该日最新数据的 mtime（秒）。"""
+    """合并有效导出；返回需要用户处理的读取/数据故障。文件内容变了也要重新合并。"""
     files = state.setdefault("files", {})
     days = state.setdefault("days", {})
     cache = cfg.data_dir / "cache"
+    issues = {}
     for kind in ("Health", "Workout"):
         folder = cfg.export_dir / kind
         try:
             entries = sorted(folder.glob("*.json"), key=lambda p: (p.stat().st_mtime, p.name))
             os.listdir(folder)
         except FileNotFoundError:
-            log(f"找不到 {folder}：检查 config.json 的 export_dir 和 Health Auto Export 的自动化")
+            msg = f"找不到 {folder}：请检查 config.json 的 export_dir，并在 Health Auto Export 导出 Health 和 Workout"
+            log(msg)
+            issues[f"export:{kind}"] = msg
             continue
-        except PermissionError as e:
-            log(f"没有权限读取 {folder}（{e}）：定时运行需要给 Python「完全磁盘访问权限」，见 README")
+        except OSError as e:
+            msg = f"无法读取 {folder}（{e}）：请检查目录；权限被拒时给 Python 开启「完全磁盘访问权限」"
+            log(msg)
+            issues[f"export:{kind}"] = msg
             continue
         _request_icloud_download(folder, log)
         for f in entries:
             try:
-                mtime = f.stat().st_mtime
-                state["latest_export"] = max(state.get("latest_export", 0), mtime)
-                if files.get(str(f)) == mtime:
+                stat = f.stat()
+                content = f.read_bytes()
+                version = {"mtime_ns": stat.st_mtime_ns, "size": len(content),
+                           "sha256": hashlib.sha256(content).hexdigest()}
+                if files.get(str(f)) == version:
                     continue
                 first_seen = str(f) not in files
-                export = json.loads(f.read_text(encoding="utf-8"))
-                if not isinstance(export, dict) or not isinstance(export.get("data"), dict):
-                    raise ValueError("不是 Health Auto Export 的 JSON v2")
+                export = json.loads(content)
+                data = export.get("data") if isinstance(export, dict) else None
+                key = "metrics" if kind == "Health" else "workouts"
+                if not isinstance(data, dict) or not isinstance(data.get(key), list):
+                    raise ValueError(f"不是 Health Auto Export 的 JSON v2 {kind} 导出")
+                mtime = stat.st_mtime
+                day_exports = cache_merge.split_by_day(export) if kind == "Health" else metrics.split_workouts(export)
+                if not day_exports:
+                    files[str(f)] = version
+                    save()
+                    continue   # 空壳导出没有实际日期/数据，不能推进定稿时间。
                 if kind == "Health":
-                    for day, ms in cache_merge.split_by_day(export).items():
+                    for day, ms in day_exports.items():
                         changed = cache_merge.merge_into_cache(ms, cache / "health" / f"{day}.json")
                         if changed or first_seen:
                             days[day] = max(days.get(day, 0), mtime)
                         if changed:
                             log(f"{day} 健康数据更新：{len(changed)} 项")
                 else:
-                    for day, ws in metrics.split_workouts(export).items():
+                    for day, ws in day_exports.items():
                         path = cache / "workout" / f"{day}.json"
                         old = {w.get("id") or w.get("start"): w for w in read_json(path, [])}
                         new = {w.get("id") or w.get("start"): w for w in ws}
@@ -101,13 +117,30 @@ def ingest(cfg, state, log=print, save=lambda: None, now_ts=None):
                             days[day] = max(days.get(day, 0), mtime)
                         elif first_seen:
                             days[day] = max(days.get(day, 0), mtime)
-                files[str(f)] = mtime
+                # 格式正确且成功合并后才刷新有效导出时间；坏文件不能让旧日报提前定稿。
+                state["latest_export"] = max(state.get("latest_export", 0), mtime)
+                files[str(f)] = version
                 save()
-            except (OSError, ValueError) as e:      # 还没下载完 / 写到一半 / 格式不对：跳过，下次再试
+            except (OSError, ValueError) as e:
                 log(f"跳过 {f.name}：{e}")
     latest = state.get("latest_export")
-    if latest and (now_ts or datetime.now().timestamp()) - latest > STALE_HOURS * 3600:
-        log(f"最新的导出已经超过 {STALE_HOURS} 小时没更新：打开 Health Auto Export 手动导出一次")
+    if not issues and not days:
+        issues["no-data"] = "尚未收到可用健康或训练数据：请在 Health Auto Export 手动导出一次，并检查 Health/Workout 的 JSON v2 文件是否已到 Mac"
+    elif latest and (now_ts or datetime.now().timestamp()) - latest > STALE_HOURS * 3600:
+        issues["stale-data"] = f"有效导出已超过 {STALE_HOURS} 小时没更新：请打开 Health Auto Export 手动导出，并检查 iCloud 同步"
+    for key, msg in issues.items():
+        if not key.startswith("export:"):
+            log(msg)
+    return issues
+
+
+def _sync_alerts(state, issues, result):
+    """同一故障持续时只提醒一次；恢复后再次发生可以再提醒。"""
+    previous = state.get("active_alerts", {})
+    result["alerts"] = [msg for key, msg in sorted(issues.items())
+                        if key != "api-fatal" and previous.get(key) != msg]
+    result["notify_fatal"] = bool(result["fatal"] and previous.get("api-fatal") != result["fatal"])
+    state["active_alerts"] = issues
 
 
 def history(cfg, blocks, until, window=35):
@@ -121,11 +154,11 @@ def history(cfg, blocks, until, window=35):
         if cache:
             ms = cache["data"]["metrics"]
             row = {**metrics.daily_fields(ms), **metrics.extra_fields(ms)}
-            row.update(metrics.workout_summary(read_json(cfg.data_dir / "cache" / "workout" / f"{k}.json", []))[0])
         else:
             p = cfg.vault_dir / "每日" / f"{k}.md"
             if p.exists():
                 row = note.read_frontmatter(p.read_text(encoding="utf-8"))
+        row.update(metrics.workout_summary(read_json(cfg.data_dir / "cache" / "workout" / f"{k}.json", []))[0])
         w = manual_log.number(blocks.get(k, ""), "体重")
         if w is not None:
             row["weight"] = w
@@ -134,7 +167,8 @@ def history(cfg, blocks, until, window=35):
     return out
 
 
-def write_day(cfg, day, data_mtime, final, tz, blocks, dry_run=False, log=print, cache_ttl=None):
+def prepare_day(cfg, day, data_mtime, final, tz, blocks):
+    """使用实际发给 AI 的材料判断是否更新，涵盖手填记录、备注、历史和迟到训练。"""
     vault = cfg.vault_dir
     as_of_dt = datetime.fromtimestamp(data_mtime, tz)
     status = "定稿" if final else f"进行中 · 截至 {as_of_dt:%H:%M}"
@@ -156,19 +190,37 @@ def write_day(cfg, day, data_mtime, final, tz, blocks, dry_run=False, log=print,
         manual_block=blocks.get(day, ""), prev_manual_block=blocks.get(yesterday, ""),
         user_notes=note.user_notes(existing or ""), profile=read(vault / "个人档案.md"),
         plan=read(vault / "训练计划.md"), history=history(cfg, blocks, day), blocks=blocks)
+    system = report.system_prompt()
+    effort = cfg.effort if final else (cfg.effort_in_progress or cfg.effort)
+    signature = hashlib.sha256(json.dumps(
+        {"system": system, "user": user, "model": cfg.model, "effort": effort, "fallbacks": cfg.fallbacks},
+        ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+    return {"status": status, "fields": fields, "path": note_path, "template": template,
+            "user": user, "system": system, "effort": effort, "signature": signature}
+
+
+def write_day(cfg, day, data_mtime, final, tz, blocks, dry_run=False, log=print, cache_ttl=None, prepared=None):
+    inputs = prepared or prepare_day(cfg, day, data_mtime, final, tz, blocks)
+    path = inputs["path"]
+
+    def write(ai):
+        # AI 生成可能耗时几分钟。写回前重读笔记，保留期间用户新增的备注和字段。
+        existing = path.read_text(encoding="utf-8") if path.exists() else None
+        _atomic_write(path, note.render(existing, inputs["template"], inputs["fields"], ai))
+
     ai = None
     if dry_run:
-        log(f"===== {day}（{status}）发给 Claude 的材料 =====\n{user}\n")
+        log(f"===== {day}（{inputs['status']}）发给 Claude 的材料 =====\n{inputs['user']}\n")
     else:
-        effort = cfg.effort if final else (cfg.effort_in_progress or cfg.effort)
         try:
-            ai = report.generate(cfg, report.system_prompt(), user, effort=effort, cache_ttl=cache_ttl, log=log)
+            ai = report.generate(cfg, inputs["system"], inputs["user"], effort=inputs["effort"],
+                                 cache_ttl=cache_ttl, log=log)
         except Exception:
-            _atomic_write(note_path, note.render(existing, template, fields, None))   # 数字照样更新，AI 部分保留旧版
+            write(None)   # 数字照样更新，保留旧 AI 报告和最新的用户内容。
             raise
-    _atomic_write(note_path, note.render(existing, template, fields, ai))
-    log(f"已写 每日/{day}.md（{status}）")
-    return status
+    write(ai)
+    log(f"已写 每日/{day}.md（{inputs['status']}）")
+    return inputs["status"]
 
 
 def write_week(cfg, today, now, tz, state, blocks, dry_run=False, log=print):
@@ -234,7 +286,7 @@ def run_once(cfg, today=None, now=None, force_days=(), dry_run=False, log=print)
     tz = _tz(cfg)
     now = now or datetime.now(tz)
     today = today or now.date().isoformat()
-    result = {"written": [], "finalized": [], "weekly": None, "errors": [], "fatal": None}
+    result = {"written": [], "finalized": [], "weekly": None, "errors": [], "fatal": None, "alerts": []}
     lock = _lock(cfg)
     if lock is None:
         log("另一个腕康宝正在运行，这次跳过")
@@ -252,23 +304,29 @@ def run_once(cfg, today=None, now=None, force_days=(), dry_run=False, log=print)
         result["errors"].append(str(e))
     blocks = manual_log.parse_blocks(manual_path.read_text(encoding="utf-8")) if manual_path.exists() else {}
 
-    ingest(cfg, state, log, save, now.timestamp())
+    issues = ingest(cfg, state, log, save, now.timestamp())
+    result["errors"].extend(msg for key, msg in issues.items() if key.startswith("export:"))
     save()
 
     reports = state.setdefault("reports", {})
     fails = state.setdefault("failures", {})
     latest = state.get("latest_export", 0)
     first = date.fromisoformat(today) - timedelta(days=cfg.lookback_days - 1)
-    todo = []
+    todo, prepared_days = [], {}
     for d, m in state.get("days", {}).items():
         if not first <= date.fromisoformat(d) <= date.fromisoformat(today):
             continue
         r = reports.get(d, {})
         final = is_final(d, m, latest, now, tz)
-        stale = (r.get("data_mtime") != m or not (cfg.vault_dir / "每日" / f"{d}.md").exists()
-                 or (final and r.get("status") != "定稿"))
-        if stale and r.get("refused_mtime") != m:
-            todo.append(d)
+        inputs = prepare_day(cfg, d, m, final, tz, blocks)
+        prepared_days[d] = inputs
+        stale = (r.get("input_signature") != inputs["signature"]
+                 or not (cfg.vault_dir / "每日" / f"{d}.md").exists())
+        if stale:
+            if r.get("refused_signature") == inputs["signature"]:
+                issues[f"refused:{d}"] = f"{d} 的报告被 Claude 拒绝：请检查记录或用 --date 重试；旧报告已保留"
+            else:
+                todo.append(d)
     todo = sorted(set(todo) | set(force_days))
     if not todo:
         log("没有要更新的报告")
@@ -278,17 +336,22 @@ def run_once(cfg, today=None, now=None, force_days=(), dry_run=False, log=print)
         if m is None:
             log(f"{d} 没有缓存数据，跳过")
             continue
-        f = fails.get(d)
-        if f and f.get("data_mtime") == m and f.get("count", 0) >= MAX_FAILURES and d not in force_days:
-            log(f"{d} 已连续失败 {f['count']} 次，等新数据或用 --date 重试：{f.get('error')}")
-            continue
         final = is_final(d, m, latest, now, tz)
+        inputs = prepared_days.get(d) or prepare_day(cfg, d, m, final, tz, blocks)
+        signature = inputs["signature"]
+        f = fails.get(d)
+        if f and f.get("input_signature") == signature and f.get("count", 0) >= MAX_FAILURES and d not in force_days:
+            log(f"{d} 已连续失败 {f['count']} 次，等新数据或用 --date 重试：{f.get('error')}")
+            issues[f"report:{d}"] = f"{d} 的报告已连续失败 {MAX_FAILURES} 次：请查看日志，修正记录或用 --date 重试"
+            continue
         try:
-            status = write_day(cfg, d, m, final, tz, blocks, dry_run, log, cache_ttl)
+            status = write_day(cfg, d, m, final, tz, blocks, dry_run, log, cache_ttl, prepared=inputs)
         except report.Refused as e:
             log(f"{d} {e}")
+            result["errors"].append(f"{d}: {e}")
+            issues[f"refused:{d}"] = f"{d} 的报告被 Claude 拒绝：请检查记录或用 --date 重试；旧报告已保留"
             if not e.retry_later:
-                reports.setdefault(d, {})["refused_mtime"] = m
+                reports.setdefault(d, {})["refused_signature"] = signature
             save()
             continue
         except _fatal_errors() as e:     # 每天都会一样失败：停下来告诉用户
@@ -300,19 +363,27 @@ def run_once(cfg, today=None, now=None, force_days=(), dry_run=False, log=print)
                 result["fatal"] = f"Claude API 账户余额或账单有问题：{e}"
                 log(result["fatal"])
                 break
-            log(f"{d} Claude API 暂时不可用（{e.status_code}），剩下的下个整点再写")
+            msg = f"{d} Claude API 暂时不可用（{e.status_code}），剩下的下个整点再写"
+            log(msg)
+            result["errors"].append(msg)
+            issues["api-unavailable"] = f"Claude 接口暂时不可用（{e.status_code}），下个整点自动重试；旧报告已保留"
             break
         except anthropic.APIConnectionError as e:
-            log(f"{d} 连不上 Claude API（{e}），下个整点再写")
+            msg = f"{d} 连不上 Claude API（{e}），下个整点再写"
+            log(msg)
+            result["errors"].append(msg)
+            issues["api-connect"] = "连不上 Claude 接口：请检查 Mac 网络，下个整点自动重试；旧报告已保留"
             break
         except Exception as e:           # 一天失败不影响其他天
-            f = fails.setdefault(d, {"data_mtime": m, "count": 0})
-            if f.get("data_mtime") != m:
-                f.update(data_mtime=m, count=0)
+            f = fails.setdefault(d, {"input_signature": signature, "count": 0})
+            if f.get("input_signature") != signature:
+                f.update(input_signature=signature, count=0)
             f["count"] += 1
             f["error"] = str(e)[:300]
             log(f"{d} 写报告失败：{e}")
             result["errors"].append(f"{d}: {e}")
+            if f["count"] >= MAX_FAILURES:
+                issues[f"report:{d}"] = f"{d} 的报告已连续失败 {MAX_FAILURES} 次：请查看日志，修正记录或用 --date 重试"
             save()
             continue
         result["written"].append(d)
@@ -320,7 +391,8 @@ def run_once(cfg, today=None, now=None, force_days=(), dry_run=False, log=print)
             fails.pop(d, None)
             if status == "定稿" and reports.get(d, {}).get("status") != "定稿":
                 result["finalized"].append(d)
-            reports[d] = {"data_mtime": m, "status": status, "generated_at": now.isoformat(timespec="seconds")}
+            reports[d] = {"data_mtime": m, "input_signature": signature, "status": status,
+                          "generated_at": now.isoformat(timespec="seconds")}
             save()      # effort=max 一份报告要好几分钟，被打断也不用重来
     if not result["fatal"]:
         try:
@@ -328,5 +400,8 @@ def run_once(cfg, today=None, now=None, force_days=(), dry_run=False, log=print)
         except Exception as e:
             log(f"周报失败：{e}")
             result["errors"].append(f"周报: {e}")
+    if result["fatal"]:
+        issues["api-fatal"] = result["fatal"]
+    _sync_alerts(state, issues, result)
     save()
     return result
