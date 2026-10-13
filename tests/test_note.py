@@ -15,3 +15,15 @@ def test_unknown_frontmatter_keys_are_kept():
     out = render(text, None, {"steps": 5}, None)
     assert read_frontmatter(out) == {"mood": "好", "steps": 5}
     assert "正文" in out
+
+
+def test_deleted_end_marker_does_not_eat_user_text():
+    first = render(None, None, {"steps": 1}, "报告")
+    broken = first.replace(AI_END, "") + "\n我在报告下面写的总结\n"
+    out = render(render(broken, None, {"steps": 2}, "报告2"), None, {"steps": 3}, "报告3")
+    assert "我在报告下面写的总结" in out and out.count(AI_END) == 1
+
+
+def test_crlf_frontmatter_is_reused():
+    out = render("---\r\nmood: 好\r\nsteps:\r\n---\r\n正文\r\n", None, {"steps": 5}, None)
+    assert out.count("---\n") == 2 and read_frontmatter(out)["steps"] == 5

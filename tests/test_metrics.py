@@ -33,3 +33,24 @@ def test_multiple_workouts_merge():
     fields, _ = workout_summary(ws)
     assert fields == {"workout_type": "户外步行, 传统力量训练", "workout_min": 90,
                       "workout_kcal": 400, "workout_avg_hr": 110}
+
+
+def test_sleep_segments_and_units():
+    seg = lambda a, b, v: {"startDate": f"2026-01-0{a}", "endDate": f"2026-01-0{b}", "value": v, "qty": 1}
+    export = {"data": {"metrics": [{"name": "sleep_analysis", "units": "hr", "data": [
+        seg("4 23:30:00 +0800", "5 01:30:00 +0800", "Core"), seg("5 01:30:00 +0800", "5 02:30:00 +0800", "Deep"),
+        seg("5 02:30:00 +0800", "5 07:00:00 +0800", "REM")]}]}}
+    f = daily_fields(split_by_day(export)["2026-01-05"])
+    assert f["sleep_hours"] == 7.5 and f["deep_sleep_min"] == 60
+    walk = {"name": "Outdoor Walk", "start": "2026-01-05 08:00:00 +0800", "duration": 2700,
+            "distance": {"qty": 2.1, "units": "mi"}, "activeEnergyBurned": {"qty": 150, "units": "kcal"}}
+    fields, detail = workout_summary([walk])
+    assert detail[0]["suspicious"] is False and detail[0]["distance_km"] == 3.38
+
+
+def test_compact_only_sends_allowed_metrics():
+    from wankangbao.metrics import compact
+    ms = [{"name": "sexual_activity", "units": "count", "data": [{"qty": 1}]},
+          {"name": "heart_rate_variability", "units": "ms", "data": [{"qty": 40.0}, {"qty": 50.0}]}]
+    out = compact(ms)
+    assert "sexual_activity" not in out and "avg=45.0" in out

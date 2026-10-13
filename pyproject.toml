@@ -1,20 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "wankangbao"
-version = "0.1.0"
+version = "0.2.0"
 description = "Apple Watch 数据 → Obsidian 每日 AI 健康报告"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
 dependencies = ["anthropic>=1.13"]
 
-[project.scripts]
-wankangbao = "wankangbao.__main__:main"
+# 从仓库目录运行：python start.py（配置、示例和库模板都在仓库里，不提供全局命令）
 
 [tool.setuptools]
-packages = ["wankangbao"]
+packages = ["wankangbao", "wankangbao.prompts"]
 
 [tool.setuptools.package-data]
-wankangbao = ["prompts/*.md"]
+"wankangbao.prompts" = ["*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

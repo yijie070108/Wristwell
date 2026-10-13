@@ -24,3 +24,18 @@ def test_custom_training_days(tmp_path):
     maintain(p, "2026-01-05", train_days=[0], inbody_day=3, exercises=[["深蹲", 3, 10, "加 2.5kg"]])
     text = p.read_text(encoding="utf-8")
     assert "| 深蹲 | — |  |  |" in text and "**InBody**" not in text.split("## 2026-01-06")[0]
+
+
+def test_user_content_is_never_lost(tmp_path):
+    p = tmp_path / "m.md"
+    maintain(p, "2026-01-04")
+    text = p.read_text(encoding="utf-8").replace("# 手动记录\n", "# 手动记录\n\n我的目标：3 月底前 74kg\n", 1)
+    text = text.replace("## 2026-01-05 周一\n", "## 2026-01-05 周一\n\n## 本周感想\n膝盖有点酸\n", 1)
+    text += "\n## 2026-01-04 周日\n\n- 补录睡眠:: 01:00–07:00，6 小时，没戴表\n## 2026-02-30 写错的日期\n别丢我\n"
+    p.write_text(text, encoding="utf-8")
+    for today in ("2026-01-05", "2026-01-08", "2026-01-08"):
+        maintain(p, today)
+    out = p.read_text(encoding="utf-8")
+    for s in ("我的目标：3 月底前 74kg", "膝盖有点酸", "补录睡眠:: 01:00–07:00", "别丢我"):
+        assert s in out
+    assert out.count("## 2026-01-04") == 1

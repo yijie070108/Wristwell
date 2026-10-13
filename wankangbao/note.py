@@ -9,7 +9,7 @@ AI_START_LINE = "<!-- AI报告开始：这一段由 AI 自动生成，会被覆�
 
 DEFAULT_TEMPLATE = "---\n" + "".join(f"{f}:\n" for f in FIELDS) + "---\n\n## 备注\n\n\n" + AI_START_LINE + "\n" + AI_END + "\n"
 
-FM_RE = re.compile(r"\A---\n(.*?)\n---\n", re.S)
+FM_RE = re.compile(r"\A\ufeff?---[ \t]*\r?\n(.*?)^---[ \t]*(?:\r?\n|\Z)", re.S | re.M)
 
 
 def read_frontmatter(text):
@@ -19,7 +19,7 @@ def read_frontmatter(text):
     if not m:
         return out
     for line in m.group(1).splitlines():
-        if ":" in line:
+        if ":" in line and not line[:1].isspace():
             k, v = line.split(":", 1)
             v = v.strip()
             if v:
@@ -38,6 +38,8 @@ def set_frontmatter(text, fields):
     body = text[m.end():] if m else text
     seen = set()
     for i, line in enumerate(lines):
+        if line[:1].isspace():
+            continue
         k = line.split(":", 1)[0].strip()
         if k in fields:
             v = fields[k]
@@ -50,11 +52,23 @@ def set_frontmatter(text, fields):
 
 
 def set_ai_section(text, markdown):
-    s, e = text.find(AI_START), text.find(AI_END)
+    markdown = markdown.replace(AI_END, "").replace(AI_START, "")
+    e = text.find(AI_END)
+    s = text.rfind(AI_START, 0, e) if e != -1 else -1   # 结束标记配离它最近的开始标记，别吞掉用户的字
     block = AI_START_LINE + "\n" + markdown.strip() + "\n" + AI_END
-    if s == -1 or e == -1 or e < s:
+    if s == -1:
         return text.rstrip("\n") + "\n\n" + block + "\n"
     return text[:s] + block + text[e + len(AI_END):]
+
+
+def user_notes(text):
+    """用户在笔记里自己写的部分（frontmatter 之后、AI 报告之前），去掉「## 备注」标题。"""
+    m = FM_RE.match(text or "")
+    body = (text or "")[m.end():] if m else (text or "")
+    s = body.find(AI_START)
+    body = body[:s] if s != -1 else body
+    body = re.sub(r"^## 备注\s*$", "", body, flags=re.M)
+    return body.strip()
 
 
 def render(existing, template, fields, ai_markdown=None):

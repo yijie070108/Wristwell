@@ -11,7 +11,7 @@
 ## 怎么用
 
 1. 把 `vault-template/` 复制成你的 Obsidian 库，按 [数据导出设置](数据导出设置.md) 设好 Health Auto Export。
-2. 把 `wankangbao/cache_merge.py`、`wankangbao/manual_log.py` 放进项目文件。
+2. 把 `wankangbao/cache_merge.py`、`wankangbao/manual_log.py`、`wankangbao/prompts/` 放进项目文件（两个脚本只用标准库，可以单独运行；这个模式下训练日和动作用脚本里的默认值，要改就直接改 manual_log.py 开头）。
 3. 新建一个对话，把下面的指令发给 Claude，并让它每小时运行一次。
 
 ```text
@@ -20,10 +20,10 @@
 0. 整理手动记录：重新读取 Obsidian 库里的「手动记录.md」，运行 manual_log.py <文件> <今天日期>，
    内容有变化才写回（我可能正在填，写回前确认文件没被我改过）。
 1. 看 Health Auto Export 的 Health/ 和 Workout/ 文件夹里有没有新的或更新过的 JSON。
-   有就先用 cache_merge.py 合并进缓存（每天一个文件）。写报告只读缓存，不直接读导出文件：
+   有就先运行 python3 cache_merge.py <导出.json> <缓存目录>，它会按天拆开合并成 缓存目录/YYYY-MM-DD.json。写报告只读缓存，不直接读导出文件：
    后台导出偶尔是只有部分指标的残缺版，直接读会把好数据冲掉。
 2. 需要写的日期 = 最近 7 天（含今天）里，没有报告、或者数据比上次写报告时新的日子。
-   导出时间早于当天 23:59 → 标「进行中 · 截至 HH:MM」，按到目前为止写；晚于当天结束 → 标「定稿」。
+   那天 24 点之后还没有任何新导出 → 标「进行中 · 截至 HH:MM」，按到目前为止写；之后来过导出 → 标「定稿」。
 3. 每日笔记写在 每日/YYYY-MM-DD.md，新文件按 模板/每日模板.md 建。
    frontmatter 填自动字段（kJ ÷ 4.184 换算大卡）；一天多次训练要合并（类型去重拼接，时长消耗求和，心率按时长加权）；
    明显忘了结束的记录不计入。只替换「AI报告开始」到「AI报告结束」之间，「备注」和我写的内容原样保留。

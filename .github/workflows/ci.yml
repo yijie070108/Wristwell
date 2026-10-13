@@ -7,10 +7,14 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest]
         python-version: ["3.10", "3.12", "3.13"]
+        include:
+          - os: macos-latest
+            python-version: "3.13"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,4 +22,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install -r requirements-dev.txt
       - run: python -m pytest -q
-      - run: python start.py --demo --dry-run
+      - name: Demo smoke test（出错会以非 0 退出）
+        run: python start.py --demo --dry-run
+      - name: The two helper scripts work standalone
+        run: |
+          d=$(mktemp -d)
+          cp wankangbao/manual_log.py wankangbao/cache_merge.py "$d"
+          python -I "$d/manual_log.py" "$d/m.md" 2026-01-05
+          python -I "$d/cache_merge.py" examples/Health/HealthAutoExport-2026-01-05.json "$d/cache"
+          test -f "$d/cache/2026-01-05.json"
+      - run: bash -n scripts/install_launchd.sh
