@@ -1,0 +1,32 @@
+{
+ "data": {
+  "workouts": [
+   {
+    "id": "EXAMPLE-0001",
+    "name": "传统力量训练",
+    "start": "2026-01-04 18:05:00 +0800",
+    "end": "2026-01-04 19:02:00 +0800",
+    "duration": 3420,
+    "activeEnergyBurned": {
+     "qty": 1380.0,
+     "units": "kJ"
+    },
+    "heartRate": {
+     "min": {
+      "qty": 88,
+      "units": "bpm"
+     },
+     "avg": {
+      "qty": 118,
+      "units": "bpm"
+     },
+     "max": {
+      "qty": 153,
+      "units": "bpm"
+     }
+    },
+    "isIndoor": true
+   }
+  ]
+ }
+}

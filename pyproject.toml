@@ -1,0 +1,20 @@
+[project]
+name = "wankangbao"
+version = "0.1.0"
+description = "Apple Watch 数据 → Obsidian 每日 AI 健康报告"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = ["anthropic>=1.13"]
+
+[project.scripts]
+wankangbao = "wankangbao.__main__:main"
+
+[tool.setuptools]
+packages = ["wankangbao"]
+
+[tool.setuptools.package-data]
+wankangbao = ["prompts/*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

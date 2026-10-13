@@ -1,0 +1,66 @@
+{
+ "data": {
+  "workouts": [
+   {
+    "id": "EXAMPLE-0002",
+    "name": "户外步行",
+    "start": "2026-01-05 12:10:00 +0800",
+    "end": "2026-01-05 12:42:00 +0800",
+    "duration": 1920,
+    "activeEnergyBurned": {
+     "qty": 520.0,
+     "units": "kJ"
+    },
+    "heartRate": {
+     "min": {
+      "qty": 74,
+      "units": "bpm"
+     },
+     "avg": {
+      "qty": 104,
+      "units": "bpm"
+     },
+     "max": {
+      "qty": 139,
+      "units": "bpm"
+     }
+    },
+    "isIndoor": false,
+    "distance": {
+     "qty": 2.6,
+     "units": "km"
+    }
+   },
+   {
+    "id": "EXAMPLE-0003",
+    "name": "户外步行",
+    "start": "2026-01-05 19:00:00 +0800",
+    "end": "2026-01-05 19:58:00 +0800",
+    "duration": 3480,
+    "activeEnergyBurned": {
+     "qty": 610.0,
+     "units": "kJ"
+    },
+    "heartRate": {
+     "min": {
+      "qty": 58,
+      "units": "bpm"
+     },
+     "avg": {
+      "qty": 88,
+      "units": "bpm"
+     },
+     "max": {
+      "qty": 123,
+      "units": "bpm"
+     }
+    },
+    "isIndoor": false,
+    "distance": {
+     "qty": 1.1,
+     "units": "km"
+    }
+   }
+  ]
+ }
+}

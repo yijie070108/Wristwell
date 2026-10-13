@@ -1,0 +1,19 @@
+{
+  "export_dir": "~/Library/Mobile Documents/iCloud~com~ifunography~HealthExport/Documents",
+  "vault_dir": "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/健康库",
+  "data_dir": "",
+  "timezone": "Asia/Shanghai",
+  "model": "claude-opus-5-5",
+  "effort": "medium",
+  "lookback_days": 7,
+  "train_days": [2, 4, 6],
+  "inbody_day": 0,
+  "exercises": [
+    ["倒蹬", 3, 12, "加 5–10kg"],
+    ["坐姿腿弯举", 3, 12, "加一格"],
+    ["器械推胸", 3, 12, "加一格"],
+    ["坐姿划船", 4, 12, "加一格"],
+    ["单手绳索侧平举（每边）", 3, 20, "加一格"],
+    ["卷腹器械（可选）", 2, 15, "加一格"]
+  ]
+}

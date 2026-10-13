@@ -1,0 +1,158 @@
+{
+ "data": {
+  "metrics": [
+   {
+    "name": "step_count",
+    "units": "count",
+    "data": [
+     {
+      "date": "2026-01-05 00:00:00 +0800",
+      "source": "示例 Apple Watch",
+      "qty": 6340
+     }
+    ]
+   },
+   {
+    "name": "walking_running_distance",
+    "units": "km",
+    "data": [
+     {
+      "date": "2026-01-05 00:00:00 +0800",
+      "source": "示例 Apple Watch",
+      "qty": 4.56
+     }
+    ]
+   },
+   {
+    "name": "active_energy",
+    "units": "kJ",
+    "data": [
+     {
+      "date": "2026-01-05 00:00:00 +0800",
+      "source": "示例 Apple Watch",
+      "qty": 1630.0
+     }
+    ]
+   },
+   {
+    "name": "basal_energy_burned",
+    "units": "kJ",
+    "data": [
+     {
+      "date": "2026-01-05 00:00:00 +0800",
+      "source": "示例 Apple Watch",
+      "qty": 7255.8
+     }
+    ]
+   },
+   {
+    "name": "resting_heart_rate",
+    "units": "count/min",
+    "data": [
+     {
+      "date": "2026-01-05 00:00:00 +0800",
+      "source": "示例 Apple Watch",
+      "qty": 63
+     }
+    ]
+   },
+   {
+    "name": "heart_rate_variability",
+    "units": "ms",
+    "data": [
+     {
+      "date": "2026-01-05 00:00:00 +0800",
+      "source": "示例 Apple Watch",
+      "qty": 41
+     }
+    ]
+   },
+   {
+    "name": "heart_rate",
+    "units": "count/min",
+    "data": [
+     {
+      "date": "2026-01-05 00:00:00 +0800",
+      "Min": 55,
+      "Max": 118,
+      "Avg": 81
+     }
+    ]
+   },
+   {
+    "name": "blood_oxygen_saturation",
+    "units": "%",
+    "data": [
+     {
+      "date": "2026-01-05 00:00:00 +0800",
+      "source": "示例 Apple Watch",
+      "qty": 96.8
+     }
+    ]
+   },
+   {
+    "name": "respiratory_rate",
+    "units": "count/min",
+    "data": [
+     {
+      "date": "2026-01-05 00:00:00 +0800",
+      "source": "示例 Apple Watch",
+      "qty": 15.2
+     }
+    ]
+   },
+   {
+    "name": "apple_exercise_time",
+    "units": "min",
+    "data": [
+     {
+      "date": "2026-01-05 00:00:00 +0800",
+      "source": "示例 Apple Watch",
+      "qty": 38
+     }
+    ]
+   },
+   {
+    "name": "apple_stand_hour",
+    "units": "count",
+    "data": [
+     {
+      "date": "2026-01-05 00:00:00 +0800",
+      "source": "示例 Apple Watch",
+      "qty": 11
+     }
+    ]
+   },
+   {
+    "name": "time_in_daylight",
+    "units": "min",
+    "data": [
+     {
+      "date": "2026-01-05 00:00:00 +0800",
+      "source": "示例 Apple Watch",
+      "qty": 42
+     }
+    ]
+   },
+   {
+    "name": "sleep_analysis",
+    "units": "hr",
+    "data": [
+     {
+      "date": "2026-01-05 00:00:00 +0800",
+      "source": "示例 Apple Watch",
+      "totalSleep": 5.4,
+      "deep": 0.6,
+      "rem": 1.0,
+      "core": 3.8,
+      "awake": 0.5,
+      "asleep": 0,
+      "inBed": 0,
+      "sleepStart": "2026-01-05 01:50:00 +0800",
+      "sleepEnd": "2026-01-05 07:35:00 +0800"
+     }
+    ]
+   }
+  ]
+ }
+}
