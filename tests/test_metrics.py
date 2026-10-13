@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from wankangbao.cache_merge import split_by_day
-from wankangbao.metrics import daily_fields, split_workouts, workout_summary
+from wristwell.cache_merge import split_by_day
+from wristwell.metrics import daily_fields, split_workouts, workout_summary
 
 EX = Path(__file__).resolve().parent.parent / "examples"
 
@@ -49,7 +49,7 @@ def test_sleep_segments_and_units():
 
 
 def test_compact_only_sends_allowed_metrics():
-    from wankangbao.metrics import compact
+    from wristwell.metrics import compact
     ms = [{"name": "sexual_activity", "units": "count", "data": [{"qty": 1}]},
           {"name": "heart_rate_variability", "units": "ms", "data": [{"qty": 40.0}, {"qty": 50.0}]}]
     out = compact(ms)

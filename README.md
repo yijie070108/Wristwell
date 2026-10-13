@@ -2,12 +2,14 @@
 
 <br />
 
-# ⌚ 腕康宝 (WanKangBao) v0.2.0
+# ⌚ 腕康宝 Wristwell v0.2.1
 
 ### Apple Watch 数据全自动变成 Obsidian 里的每日 AI 健康报告
 
-[![GitHub Repository](https://img.shields.io/badge/GitHub-yijie070108%2Fwankangbao-blue?logo=github&style=for-the-badge)](https://github.com/yijie070108/wankangbao)
-[![Version](https://img.shields.io/badge/Version-v0.2.0-8b5cf6?style=for-the-badge)](https://github.com/yijie070108/wankangbao/releases)
+*Carpe diem, from your wrist.*
+
+[![GitHub Repository](https://img.shields.io/badge/GitHub-yijie070108%2Fwristwell-blue?logo=github&style=for-the-badge)](https://github.com/yijie070108/wristwell)
+[![Version](https://img.shields.io/badge/Version-v0.2.1-8b5cf6?style=for-the-badge)](https://github.com/yijie070108/wristwell/releases)
 [![License](https://img.shields.io/badge/License-MIT-emerald?style=for-the-badge)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white&style=for-the-badge)](https://www.python.org)
 [![Obsidian](https://img.shields.io/badge/Obsidian-笔记库-7C3AED?logo=obsidian&logoColor=white&style=for-the-badge)](https://obsidian.md)
@@ -21,7 +23,7 @@
 ---
 
 > [!IMPORTANT]
-> **腕康宝 (WanKangBao)** 是一套给减脂 / 增肌 / 想看懂自己身体数据的人用的个人健康系统。Apple Watch 记录 → 手机每小时自动导出到 iCloud → Mac 上的腕康宝每个整点读取，**合并数据、对照你自己的基线、结合你手填的体重 / 饮食 / 力量训练**，用 Claude Opus 5.5（思考力度开到 max）写一份「发现 → 解读 → 怎么做」的每日报告，直接写进你的 Obsidian 库；每周一再写一份带趋势图的周报。
+> **腕康宝 (Wristwell)** 是一套给减脂 / 增肌 / 想看懂自己身体数据的人用的个人健康系统。Apple Watch 记录 → 手机每小时自动导出到 iCloud → Mac 上的腕康宝每个整点读取，**合并数据、对照你自己的基线、结合你手填的体重 / 饮食 / 力量训练**，用 Claude Opus 5.5（思考力度开到 max）写一份「发现 → 解读 → 怎么做」的每日报告，直接写进你的 Obsidian 库；每周一再写一份带趋势图的周报。
 
 > [!CAUTION]
 > 报告由 AI 根据手表数据生成，仅供参考，**不能代替医生诊断**。
@@ -33,10 +35,10 @@
 > **给用户的提示**：如果你在用 **Claude Code、Cursor、Codex、Windsurf** 或任意 AI 编程 Agent，复制下面这段发给它，它会帮你在 Mac 上装好并跑通示例。
 
 ```text
-请按照以下步骤为我安装并试运行【腕康宝 WanKangBao】Apple Watch 健康日报系统：
+请按照以下步骤为我安装并试运行【腕康宝 Wristwell】Apple Watch 健康日报系统：
 
 1. 克隆仓库：
-   - git clone https://github.com/yijie070108/wankangbao.git && cd wankangbao
+   - git clone https://github.com/yijie070108/wristwell.git && cd wristwell
 
 2. 安装依赖：
    - 若不存在 .venv，运行 python3 -m venv .venv
@@ -123,8 +125,8 @@ flowchart TD
 ### 1. 安装
 
 ```bash
-git clone https://github.com/yijie070108/wankangbao.git
-cd wankangbao
+git clone https://github.com/yijie070108/wristwell.git
+cd wristwell
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
@@ -158,7 +160,7 @@ python start.py             # 跑一次真的
 **方式一（推荐）**：macOS launchd，每个整点过 1 分钟跑一次：
 
 ```bash
-./scripts/install_launchd.sh      # 生成 ~/Library/LaunchAgents/com.wankangbao.hourly.plist 并加载
+./scripts/install_launchd.sh      # 生成 ~/Library/LaunchAgents/com.wristwell.hourly.plist 并加载
 ```
 
 > [!IMPORTANT]
@@ -206,17 +208,17 @@ python start.py --loop
 - **怎么做**：想喝就点无糖或三分糖、去掉珍珠，热量能少一半以上
 ```
 
-每份报告固定包含：结论 → 状态总览 → 问题清单 → 其他指标 → 今天可以做得更好 → 明天的处方 → 什么时候该看医生。格式和原则都写在 [wankangbao/prompts/daily_report.md](wankangbao/prompts/daily_report.md)，想改风格直接改这个文件。
+每份报告固定包含：结论 → 状态总览 → 问题清单 → 其他指标 → 今天可以做得更好 → 明天的处方 → 什么时候该看医生。格式和原则都写在 [wristwell/prompts/daily_report.md](wristwell/prompts/daily_report.md)，想改风格直接改这个文件。
 
 ---
 
 ## 📂 目录结构
 
 ```
-wankangbao/
+wristwell/
 ├── start.py                    # 一键运行入口
 ├── config.example.json         # 配置示例 → 复制成 config.json
-├── wankangbao/
+├── wristwell/
 │   ├── run.py                  # 主流程
 │   ├── cache_merge.py          # 导出 → 按天缓存（残缺导出防护）
 │   ├── metrics.py              # 缓存 → frontmatter 数字、训练合并
@@ -292,6 +294,6 @@ wankangbao/
 
 **🌟 如果腕康宝帮你看懂了自己的身体数据，欢迎点个 Star！**
 
-[https://github.com/yijie070108/wankangbao](https://github.com/yijie070108/wankangbao)
+[https://github.com/yijie070108/wristwell](https://github.com/yijie070108/wristwell)
 
 </div>

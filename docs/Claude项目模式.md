@@ -11,7 +11,7 @@
 ## 怎么用
 
 1. 把 `vault-template/` 复制成你的 Obsidian 库，按 [数据导出设置](数据导出设置.md) 设好 Health Auto Export。
-2. 把 `wankangbao/cache_merge.py`、`wankangbao/manual_log.py`、`wankangbao/prompts/` 放进项目文件（两个脚本只用标准库，可以单独运行；这个模式下训练日和动作用脚本里的默认值，要改就直接改 manual_log.py 开头）。
+2. 把 `wristwell/cache_merge.py`、`wristwell/manual_log.py`、`wristwell/prompts/` 放进项目文件（两个脚本只用标准库，可以单独运行；这个模式下训练日和动作用脚本里的默认值，要改就直接改 manual_log.py 开头）。
 3. 新建一个对话，把下面的指令发给 Claude，并让它每小时运行一次。
 
 ```text
@@ -27,9 +27,9 @@
 3. 每日笔记写在 每日/YYYY-MM-DD.md，新文件按 模板/每日模板.md 建。
    frontmatter 填自动字段（kJ ÷ 4.184 换算大卡）；一天多次训练要合并（类型去重拼接，时长消耗求和，心率按时长加权）；
    明显忘了结束的记录不计入。只替换「AI报告开始」到「AI报告结束」之间，「备注」和我写的内容原样保留。
-4. 报告正文的格式和原则，严格按仓库里 wankangbao/prompts/daily_report.md。
+4. 报告正文的格式和原则，严格按仓库里 wristwell/prompts/daily_report.md。
    个人情况读「个人档案.md」，当天的体重、多吃少吃、训练表读「手动记录.md」，基线用之前 14–28 天每日笔记的平均。
-5. 每周一第一次运行，按 wankangbao/prompts/weekly_report.md 写上周的周报到 每周/YYYY-Www.md。
+5. 每周一第一次运行，按 wristwell/prompts/weekly_report.md 写上周的周报到 每周/YYYY-Www.md。
 6. 只在某天第一次定稿时发一句话通知我；进行中的更新不要发消息。
 7. 最新数据超过 24 小时没变，提醒我一次去 Health Auto Export 手动导出。
    Mac 不在线或读写失败：不打扰我，下次再试；连续一天都失败才告诉我。

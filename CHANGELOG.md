@@ -1,5 +1,10 @@
 # 更新日志
 
+## v0.2.1 · 2026-10-13
+
+- 英文名定为 **Wristwell**（wrist 对应「腕」，well 对应「康」），副标题 *Carpe diem, from your wrist.*；中文名「腕康宝」不变
+- Python 包和命令行改名为 `wristwell`（`python -m wristwell`），launchd 标签改为 `com.wristwell.hourly`，建议的仓库名改为 `wristwell`
+
 ## v0.2.0 · 2026-10-13
 
 - 思考力度默认 **max**（Claude Opus 5.5，自适应思考，`max_tokens=128000`）；新增 `effort_in_progress` 给「进行中」报告单独降档

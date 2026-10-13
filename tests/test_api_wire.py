@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import anthropic
 import pytest
 
-from wankangbao import report
+from wristwell import report
 
 
 def sse(events):

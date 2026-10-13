@@ -4,7 +4,7 @@ import statistics
 from datetime import date, timedelta
 from pathlib import Path
 
-from wankangbao import manual_log
+from wristwell import manual_log
 
 PROMPT_DIR = Path(__file__).parent / "prompts"
 WEEKDAY = "一二三四五六日"

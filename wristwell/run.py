@@ -6,8 +6,8 @@ import subprocess
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
-from wankangbao import cache_merge, manual_log, metrics, note, report
-from wankangbao.cache_merge import read_json, write_json
+from wristwell import cache_merge, manual_log, metrics, note, report
+from wristwell.cache_merge import read_json, write_json
 
 STALE_HOURS = 24          # 最新导出超过这么久没变，提醒用户手动导出
 FINAL_FALLBACK_HOURS = 24  # 过完一天后这么久还没有新导出，也按定稿写

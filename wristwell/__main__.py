@@ -1,4 +1,4 @@
-"""命令行入口：python start.py（或 python -m wankangbao）"""
+"""命令行入口：python start.py（或 python -m wristwell）"""
 import argparse
 import os
 import platform
@@ -9,7 +9,7 @@ import time
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from wankangbao import config, report, run
+from wristwell import config, report, run
 
 DEMO_TZ = "Asia/Shanghai"
 # 示例导出文件的「导出时间」：01-04 那天在 01-05 早上导出过（→ 定稿），01-05 截至 21:30（→ 进行中）
@@ -42,7 +42,7 @@ def setup_demo(cfg):
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(prog="wankangbao", description="Apple Watch 数据 → Obsidian 每日 AI 健康报告")
+    p = argparse.ArgumentParser(prog="wristwell", description="Apple Watch 数据 → Obsidian 每日 AI 健康报告")
     p.add_argument("--config", help="配置文件路径，默认是仓库根目录的 config.json")
     p.add_argument("--loop", action="store_true", help="一直运行，每个整点过 1 分钟跑一次")
     p.add_argument("--date", action="append", default=[], help="强制重写某天（YYYY-MM-DD），可写多次；--loop 时只在第一次生效")

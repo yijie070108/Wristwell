@@ -1,4 +1,4 @@
-from wankangbao.note import AI_END, read_frontmatter, render
+from wristwell.note import AI_END, read_frontmatter, render
 
 
 def test_keeps_user_notes_and_replaces_ai_section():

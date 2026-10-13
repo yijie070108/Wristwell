@@ -1,4 +1,4 @@
-from wankangbao.manual_log import maintain, parse_blocks
+from wristwell.manual_log import maintain, parse_blocks
 
 
 def test_creates_three_days_and_moves_past(tmp_path):

@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO="$(pwd)"
-LABEL="com.wankangbao.hourly"
+LABEL="com.wristwell.hourly"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 
 if [[ "${1:-}" == "--uninstall" ]]; then

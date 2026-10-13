@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 def make_cfg(tmp_path):
     """写一个临时 config.json 并加载。"""
     def _make(**kw):
-        from wankangbao import config
+        from wristwell import config
         kw.setdefault("vault_dir", str(tmp_path / "vault"))
         kw.setdefault("data_dir", str(tmp_path / "data"))
         kw.setdefault("export_dir", str(tmp_path / "export"))

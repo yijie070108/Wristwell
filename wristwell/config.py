@@ -5,7 +5,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from wankangbao.manual_log import DEFAULT_EXERCISES
+from wristwell.manual_log import DEFAULT_EXERCISES
 
 ROOT = Path(__file__).resolve().parent.parent
 EFFORTS = ("low", "medium", "high", "xhigh", "max")

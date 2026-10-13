@@ -1,7 +1,7 @@
 """读写 Obsidian 每日笔记：只改 frontmatter 的自动字段和 AI 报告那一段，其他内容原样保留。"""
 import re
 
-from wankangbao.metrics import FIELDS
+from wristwell.metrics import FIELDS
 
 AI_START = "<!-- AI报告开始"
 AI_END = "<!-- AI报告结束 -->"

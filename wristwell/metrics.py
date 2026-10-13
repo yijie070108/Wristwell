@@ -1,7 +1,7 @@
 """从缓存的 Health Auto Export 数据（JSON v2）算出每日笔记 frontmatter 里的数字，以及发给 AI 的指标摘要。"""
 from collections import defaultdict
 
-from wankangbao.cache_merge import CUMULATIVE, day_of
+from wristwell.cache_merge import CUMULATIVE, day_of
 
 KJ_PER_KCAL = 4.184
 KM_PER = {"km": 1.0, "mi": 1.609344, "m": 0.001, "yd": 0.0009144, "ft": 0.0003048}

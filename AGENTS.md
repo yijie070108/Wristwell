@@ -8,12 +8,12 @@
 
 ## 结构
 
-- `wankangbao/run.py`：一次运行的主流程（整理手动记录 → 合并导出进缓存 → 重写有新数据的每日笔记 → 周一写周报）
-- `wankangbao/cache_merge.py`：导出 → 按天缓存。**写报告只读缓存，不直接读导出**（后台导出偶尔是残缺版）
-- `wankangbao/metrics.py`：缓存 → frontmatter 数字（kJ→大卡、睡眠、多次训练合并、忘了结束的训练）
-- `wankangbao/manual_log.py`：维护「手动记录.md」（今天 / 明天 / 后天的格子、历史、训练表「上次」列）
-- `wankangbao/note.py`：只改 frontmatter 自动字段和 `<!-- AI报告开始 -->` … `<!-- AI报告结束 -->` 之间，其他内容原样保留
-- `wankangbao/report.py` + `prompts/*.md`：拼材料、调用 Claude
+- `wristwell/run.py`：一次运行的主流程（整理手动记录 → 合并导出进缓存 → 重写有新数据的每日笔记 → 周一写周报）
+- `wristwell/cache_merge.py`：导出 → 按天缓存。**写报告只读缓存，不直接读导出**（后台导出偶尔是残缺版）
+- `wristwell/metrics.py`：缓存 → frontmatter 数字（kJ→大卡、睡眠、多次训练合并、忘了结束的训练）
+- `wristwell/manual_log.py`：维护「手动记录.md」（今天 / 明天 / 后天的格子、历史、训练表「上次」列）
+- `wristwell/note.py`：只改 frontmatter 自动字段和 `<!-- AI报告开始 -->` … `<!-- AI报告结束 -->` 之间，其他内容原样保留
+- `wristwell/report.py` + `prompts/*.md`：拼材料、调用 Claude
 - `vault-template/`：干净的 Obsidian 库模板；`examples/`：虚构的导出数据和 `--demo` 用的示例库
 
 ## 规则

@@ -1,4 +1,4 @@
-from wankangbao.cache_merge import merge_into_cache, merge_metrics, split_by_day
+from wristwell.cache_merge import merge_into_cache, merge_metrics, split_by_day
 
 
 def m(name, qty, day="2026-01-05"):

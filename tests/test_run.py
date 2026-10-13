@@ -6,8 +6,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from wankangbao import __main__ as cli
-from wankangbao import report, run
+from wristwell import __main__ as cli
+from wristwell import report, run
 
 ROOT = Path(__file__).resolve().parent.parent
 TZ = ZoneInfo("Asia/Shanghai")

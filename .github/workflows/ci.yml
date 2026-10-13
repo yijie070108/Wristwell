@@ -27,7 +27,7 @@ jobs:
       - name: The two helper scripts work standalone
         run: |
           d=$(mktemp -d)
-          cp wankangbao/manual_log.py wankangbao/cache_merge.py "$d"
+          cp wristwell/manual_log.py wristwell/cache_merge.py "$d"
           python -I "$d/manual_log.py" "$d/m.md" 2026-01-05
           python -I "$d/cache_merge.py" examples/Health/HealthAutoExport-2026-01-05.json "$d/cache"
           test -f "$d/cache/2026-01-05.json"
